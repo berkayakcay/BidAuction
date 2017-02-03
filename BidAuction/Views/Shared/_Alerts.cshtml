@@ -1,0 +1,16 @@
+﻿@{
+    var alerts = TempData.ContainsKey(BidAuction.Helpers.AlertHelper.Alert.TempDataKey) ? (List<BidAuction.Helpers.AlertHelper.Alert>)TempData[BidAuction.Helpers.AlertHelper.Alert.TempDataKey] : new List<BidAuction.Helpers.AlertHelper.Alert>();
+
+    foreach (var alert in alerts)
+    {
+        var dismissableClass = alert.Dismissable ? "alert-dismissable" : null;
+        <div class="alert alert-@alert.AlertStyle @dismissableClass">
+
+            @if (alert.Dismissable)
+            {
+                <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+            }
+            @Html.Raw(alert.Message)
+        </div>
+    }
+}

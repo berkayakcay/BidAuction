@@ -1,0 +1,222 @@
+﻿@using Microsoft.Ajax.Utilities
+@model BidAuction.Models.Auction
+
+@{
+    ViewBag.Title = "Auction Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section scripts
+{
+    <script src="~/Scripts/angular.min.js"></script>
+    <script src="~/Scripts/angular-route.min.js"></script>
+    <script src="~/Scripts/angular-resource.min.js"></script>
+    <script src="~/Scripts/jquery.signalR-2.2.1.min.js"></script>
+    <script src="~/signalr/hubs"></script>
+    <script type="text/javascript">
+        var meApp = angular.module('meApp', []);
+
+        meApp.filter("jsDate", function () {
+            return function (x) {
+                return new Date(parseInt(x.substr(6)));
+            };
+        });
+
+        meApp.controller('MeController',
+        [
+            '$scope', '$http',
+            function ($scope, $http) {
+                $scope.getAllBids = function () {
+                    $http({
+                        method: 'GET',
+                        url: '/Auction/GetAllBids/' + document.getElementById("AuctionId").innerHTML
+                    })
+                        .then(function successCallback(response) {
+                            $scope.Bids = response.data;
+                            console.log("GetAllBids.successCallback " + JSON.stringify(response.data));
+                        },
+                            function (response) {
+                                console.log(response);
+                            });
+                };
+
+
+
+                var announceHub = $.connection.announceHub;
+                $scope.addBid = function () {
+                    announceHub.server.addBid($scope.add_bid);
+                    $scope.add_bid.Amount = "";
+                };
+
+                announceHub.client.announce = function (userList) {
+                    console.log("client.announce" + JSON.stringify(userList));
+                    $scope.Users = userList;
+                    $scope.$apply();
+                };
+                announceHub.client.addBid = function (bid) {
+                    console.log(("client.addBid " + JSON.stringify(bid)));
+                    $scope.Bids.push(bid);
+                    $scope.$apply();
+                };
+                $.connection.hub.logging = true;
+                $.connection.hub.qs = "AuctionId=" + document.getElementById("AuctionId").innerHTML;
+                $.connection.hub.start()
+                    .done(function () {
+                        console.log("SignalR works!");
+                        //announceHub.server.joinToAuction(document.getElementById("AuctionId").innerHTML);
+                    })
+                    .fail(function (error) {
+                        console.log(error);
+                    });
+            }
+        ]);
+    </script>
+    <script src="~/Scripts/jquery.countdown.js"></script>
+    <script type="text/javascript">
+        $(function () {
+            $('[data-countdown]').each(function () {
+                var $this = $(this), finalDate = $(this).data('countdown');
+                $this.countdown(finalDate, function (event) {
+                    $this.html(event.strftime('%D days %H:%M:%S'));
+                });
+            });
+        });
+
+        var $clock = $('#clock').on('finish.countdown', function (event) {
+            $(this).parent()
+              .addClass('disabled')
+              .html('This offer has expired!');
+            var $btnAddBid = $('#btnAddBid');
+            $btnAddBid.addClass('disabled');
+        });
+    </script>
+
+}
+
+<div class="container" ng-app="meApp" ng-controller="MeController">
+    <div class="row">
+        <div class="col-md-5">
+
+
+            <div class="panel panel-default">
+                <div class="panel-heading">@Html.DisplayFor(model => model.Title)</div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="text-center">
+                            <img src="~/Uploads/Images/@Model.ImagePath" alt="@Model.Title" class="img-thumbnail" />
+                        </div>
+                        <span class="text-hide te" id="AuctionId">@Html.DisplayFor(model => model.Id)</span>
+                        <hr />
+                        <div class="h1 text-center text-danger">
+                            <h1 class="h1 text-center text-danger" data-countdown="@Model.EndTime.ToString("yyyy'/'MM'/'dd HH:mm:ss")" id="clock"></h1>
+                        </div>
+                        <div class="col-xs-6 text-left">
+                            <small class="text-info">
+                                Starting Date :
+                                @Model.StartTime.ToString("u")
+                                <br />
+                                End Date :
+                                @Model.EndTime.ToString("u")
+                                <br />
+                                Starting Price :
+                                @Model.StartingPrice.ToString("$0.00")
+                            </small>
+                        </div>
+                        <div class="col-xs-6 text-right">
+                            <div class="well well-sm text-danger text-center">
+                                <h2>
+                                    @{
+                                        if (Model.Bids.Any(w => w.AuctionId == Model.Id))
+                                        {
+                                            string maxBidAmount = Model.Bids.Where(w => w.AuctionId == Model.Id).Max(m => m.Amount).ToString("$0.00");
+                                            Write(maxBidAmount);
+                                        }
+                                        else
+                                        {
+                                            string maxBidAmount = Model.StartingPrice.ToString("$0.00");
+                                            Write(maxBidAmount);
+                                        }
+
+                                    }
+
+                                </h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-footer">
+                    <div class="row">
+                        <div class="col-md-4 text-left">
+                            @Html.ActionLink("Back to List", "Index", null, new { @class = "btn btn-default btn-lg" })
+                        </div>
+                        <div class="col-md-8 text-right">
+                            <form>
+                                <div class="input-group input-group-lg">
+                                    <input type="text" class="form-control" ng-model="add_bid.Amount" placeholder="Amount">
+                                    <div class="input-group-btn">
+                                        <button id="btnAddBid" class="btn btn-danger" ng-click="addBid()"><i class="glyphicon glyphicon-circle-arrow-up"></i></button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+        <div class="col-md-7">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <strong>Details</strong>
+                </div>
+                <div class="panel-body">
+                    <dl class="dl-horizontal">
+                        <dt>@Html.DisplayNameFor(model => model.Description)</dt>
+                        <dd>@Html.DisplayFor(model => model.Description)</dd>
+                    </dl>
+                </div>
+                <div class="panel-footer">Contact with auctioner</div>
+            </div>
+            <div class="row">
+                <div class="col-md-7">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">Recent Bids </div>
+                        <div class="panel-body pre-scrollable">
+                            <div data-ng-init="getAllBids()">
+                                <ul class="list-group">
+                                    <li ng-show="!Bids.length" class="list-group-item list-group-item-warning">No one has bid yet!</li>
+                                    <li class="list-group-item" ng-class="{'active':$first}" ng-repeat="bid in Bids">{{ bid.TimeStamp | jsDate | date: 'yyyy-MM-dd HH:mm:ss' }} <span class="badge">${{ bid.Amount }}</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="panel-footer">Total Bids(<span id="totalBids">{{ Bids.length }}</span>)</div>
+                    </div>
+                </div>
+                <div class="col-md-5">
+
+                    <div class="panel-group">
+                        <div class="panel panel-default panel-info">
+                            <div class="panel-heading">
+                                <h4 class="text-info">Connected Users <span class="badge"> {{ Users.length }} </span></h4>
+                            </div>
+                            <div class="panel-body pre-scrollable">
+                                <table class="table table-condensed">
+                                    <tr>
+                                        <th><a href="" ng-click="orderColumn='UserName'">User Name</a></th>
+                                    </tr>
+                                    <tr ng-repeat="user in Users | orderBy:orderColumn">
+                                        <td> {{ user.UserName }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="panel-footer">Real time online user panel</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+

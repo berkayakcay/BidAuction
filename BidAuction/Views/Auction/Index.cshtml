@@ -1,0 +1,64 @@
+﻿@model IEnumerable<BidAuction.Models.Auction>
+
+@{
+    ViewBag.Title = "All Auctions";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section scripts
+{
+    <script src="~/Scripts/jquery.countdown.js"></script>
+    <script type="text/javascript">
+        $(function () {
+            $('[data-countdown]').each(function () {
+                var $this = $(this), finalDate = $(this).data('countdown');
+                $this.countdown(finalDate, function (event) {
+                    $this.html(event.strftime('%D days %H:%M:%S'));
+                });
+            });
+        });
+    </script>
+}
+
+
+<div class="panel panel-default">
+    <!-- Default panel contents -->
+    <div class="panel-heading"> <span class="glyphicon glyphicon-eye-open" aria-hidden="true"></span> Listing all active auctions</div>
+    <table class="table table-striped">
+        <tr>
+            <th class="col-md-2">
+                @Html.DisplayNameFor(model => model.ImagePath)
+            </th>
+            <th class="col-md-7">
+                @Html.DisplayNameFor(model => model.Title)
+                &
+                @Html.DisplayNameFor(model => model.Description)
+            </th>
+            <th class="col-md-3 text-right">
+                Join Live Auction!
+            </th>
+        </tr>
+
+        @foreach (var item in Model)
+        {
+            <tr class="text-justify">
+                <td>
+                    <a href="@Url.Action("Details", "Auction", new {id = item.Id})" class="thumbnail"> <img src="~/Uploads/Images/@Html.DisplayFor(modelItem => item.ImagePath)" class="img-thumbnail" alt="@item.Title" width="304" height="236" /></a>
+                </td>
+                <td>
+                    <h3 class="text-info">@Html.DisplayFor(modelItem => item.Title)</h3>
+                    @Html.DisplayFor(modelItem => item.Description)
+                </td>
+                <td class="col-md-3 text-right">
+                    <h4 class="text-danger" data-countdown="@item.EndTime.ToString("yyyy'/'MM'/'dd HH:mm:ss")"></h4>
+
+                    <h3 class="text-primary">$@Html.DisplayFor(modelItem => item.StartingPrice)</h3>
+
+
+                    <a href="@Url.Action("Details", "Auction", new {id = item.Id})" class="btn btn-lg btn-info"><span class="glyphicon glyphicon-bullhorn" aria-hidden="true"></span>  Join Auction</a>
+                </td>
+            </tr>
+        }
+
+    </table>
+</div>
